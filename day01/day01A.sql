@@ -2,7 +2,7 @@ CREATE TABLE input01 (
     lines TEXT
 );
 
-\copy input01 FROM 'day01/input.txt' WITH (FORMAT text) ;
+\copy input01 FROM 'day01/input.txt' WITH (FORMAT text);
 
 WITH turns AS (
     SELECT

@@ -39,7 +39,7 @@ psql --host=localhost --port=5432 --username="bwang1008" --dbname=advent2025
 Run a Postgres script like the following:
 
 ```sh
-psql --host=localhost --port=5432 --username="bwang1008" --dbname=advent2025 -f day01/day01.sql
+psql --host=localhost --port=5432 --username="bwang1008" --dbname=advent2025 -f day01/day01A.sql
 ```
 
 with the following sample output:
