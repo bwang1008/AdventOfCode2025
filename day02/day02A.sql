@@ -69,8 +69,7 @@ invalid_id_prefixes AS (
         upper_range,
         lower_bracket,
         upper_bracket,
-        -- GREATEST(upper_bracket - lower_bracket + 1, 0) AS diff,
-        generate_series(lower_bracket, upper_bracket) AS prefix
+        GENERATE_SERIES(lower_bracket, upper_bracket) AS prefix
     FROM prevent_inside_ranges
 ),
 invalid_ids AS (
