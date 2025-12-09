@@ -28,31 +28,6 @@ neighbor_directions (drow, dcol) AS (
     (1, 0),
     (1, 1)
 ),
-board_with_potential_neighbors AS (
-    SELECT
-        board.row_index,
-        board.col_index,
-        board.value,
-        board.row_index + neighbor_directions.drow AS row_index2,
-        board.col_index + neighbor_directions.dcol AS col_index2
-    FROM board
-    CROSS JOIN neighbor_directions
-),
-board_with_neighbors AS (
-    SELECT
-        board_with_potential_neighbors.row_index,
-        board_with_potential_neighbors.col_index,
-        board_with_potential_neighbors.value,
-        board_with_potential_neighbors.row_index2,
-        board_with_potential_neighbors.col_index2,
-        board.value AS value2
-    FROM board_with_potential_neighbors
-    INNER JOIN board
-      ON (
-        board.row_index = board_with_potential_neighbors.row_index2
-        AND board.col_index = board_with_potential_neighbors.col_index2
-      )
-),
 reachable_paper_rolls AS (
     SELECT
         row_index,
@@ -65,7 +40,7 @@ reachable_paper_rolls AS (
     WHERE value = '@'
     UNION
     (
-        WITH board_with_potential_neighbors_augmented AS (
+        WITH board_with_potential_neighbors AS (
             SELECT
                 board.row_index,
                 board.col_index,
@@ -75,21 +50,21 @@ reachable_paper_rolls AS (
             FROM board
             CROSS JOIN neighbor_directions
         ),
-        board_with_neighbors_augmented AS (
+        board_with_neighbors AS (
             SELECT
-                board_with_potential_neighbors_augmented.row_index,
-                board_with_potential_neighbors_augmented.col_index,
-                board_with_potential_neighbors_augmented.value,
-                board_with_potential_neighbors_augmented.row_index2,
-                board_with_potential_neighbors_augmented.col_index2,
+                board_with_potential_neighbors.row_index,
+                board_with_potential_neighbors.col_index,
+                board_with_potential_neighbors.value,
+                board_with_potential_neighbors.row_index2,
+                board_with_potential_neighbors.col_index2,
                 reachable_paper_rolls.value AS value2,
                 reachable_paper_rolls.depth AS depth,
                 reachable_paper_rolls.num_is_reachable AS prev_num_is_reachable
-            FROM board_with_potential_neighbors_augmented
+            FROM board_with_potential_neighbors
             INNER JOIN reachable_paper_rolls
                 ON (
-                    reachable_paper_rolls.row_index = board_with_potential_neighbors_augmented.row_index2
-                    AND reachable_paper_rolls.col_index = board_with_potential_neighbors_augmented.col_index2
+                    reachable_paper_rolls.row_index = board_with_potential_neighbors.row_index2
+                    AND reachable_paper_rolls.col_index = board_with_potential_neighbors.col_index2
                 )
             WHERE NOT reachable_paper_rolls.is_reachable
         ),
@@ -101,7 +76,7 @@ reachable_paper_rolls AS (
                 COUNT(1) AS num_paper_roll_neighbors,
                 depth,
                 prev_num_is_reachable
-            FROM board_with_neighbors_augmented
+            FROM board_with_neighbors
             WHERE value2 = '@'
             GROUP BY row_index, col_index, value, depth, prev_num_is_reachable
         ),
