@@ -4,12 +4,6 @@ CREATE TEMPORARY TABLE input (
 
 \copy input FROM 'day06/input.txt' WITH (FORMAT text);
 
--- row and col of problems
--- replace blanks in problems with 0s
--- get transposed row + col
--- reconstruct lines
--- feed into A
-
 WITH RECURSIVE lines_with_rows AS (
     SELECT
         ROW_NUMBER() OVER () AS row_index,
@@ -55,7 +49,7 @@ problem_groups AS (
 ),
 problem_operators AS (
     -- for each problem_id, which operator ('+', '*') is it?
-    -- helps inform what the "default" value should be for missing rows 
+    -- helps inform what the "default" value should be for missing rows
     SELECT
         problem_groups.problem_id,
         board.value AS calculation_operator
