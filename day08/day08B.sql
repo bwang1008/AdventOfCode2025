@@ -46,7 +46,6 @@ relevant_pairwise_distances AS (
         distance
     FROM pairwise_distances
     ORDER BY distance
-    LIMIT 1000
 ),
 numbered_pairwise_distances AS (
     SELECT
@@ -60,12 +59,13 @@ leader AS (
     SELECT
         row_index AS node,
         row_index AS parent,
-        0 AS step
+        0 AS step,
+        (SELECT COUNT(1) FROM coordinates) AS num_groups
     FROM coordinates
     UNION
     (
         WITH prev AS (
-            SELECT * FROM leader WHERE step < (SELECT MAX(step) FROM numbered_pairwise_distances)
+            SELECT * FROM leader WHERE num_groups > 1
         ),
         current_pair AS (
             SELECT
@@ -100,30 +100,34 @@ leader AS (
                 node,
                 parent
             FROM prev
+        ),
+        result2 AS (
+            SELECT DISTINCT ON (node)
+                node,
+                parent,
+                1 + (SELECT MAX(step) FROM prev) AS step
+            FROM result
+            ORDER BY node, parent
         )
-        SELECT DISTINCT ON (node)
+        SELECT
             node,
             parent,
-            1 + (SELECT MAX(step) FROM prev) AS step
-        FROM result
-        ORDER BY node, parent
+            step,
+            (SELECT COUNT(DISTINCT parent) FROM result2) AS num_groups
+        FROM result2
     )
-),
-circuit_sizes AS (
-    SELECT
-        parent,
-        COUNT(1) AS circuit_size
-    FROM leader
-    WHERE step = (SELECT MAX(step) FROM numbered_pairwise_distances)
-    GROUP BY 1
-    ORDER BY 2 DESC
-    LIMIT 3
-),
-top3_sizes AS (
-    SELECT
-        ARRAY_AGG(circuit_size) AS sizes
-    FROM circuit_sizes
 )
 SELECT
-    sizes[1] * sizes[2] * sizes[3] AS answer
-FROM top3_sizes;
+    point_pairs.x1 * point_pairs.x2 AS answer
+FROM numbered_pairwise_distances
+INNER JOIN point_pairs
+ON (point_pairs.row_index1 = numbered_pairwise_distances.row_index1
+    AND point_pairs.row_index2 = numbered_pairwise_distances.row_index2
+)
+WHERE numbered_pairwise_distances.step = (
+    SELECT MAX(step) FROM leader
+);
+
+-- answer from input.txt:
+-- 1131823407
+-- took 5 minutes 24 seconds...
