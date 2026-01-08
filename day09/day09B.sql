@@ -1,15 +1,15 @@
-CREATE TABLE input2 (
+CREATE TEMPORARY TABLE input (
     lines TEXT
 );
 
-\copy input2 FROM 'day09/input.txt' WITH (FORMAT text);
+\copy input FROM 'day09/input.txt' WITH (FORMAT text);
 
 WITH input_corners AS (
     SELECT
         ROW_NUMBER() OVER () AS row_index,
         CAST(SPLIT_PART(lines, ',', 1) AS BIGINT) AS x,
         CAST(SPLIT_PART(lines, ',', 2) AS BIGINT) AS y
-    FROM input2
+    FROM input
 ),
 edges AS (
     SELECT
@@ -273,6 +273,96 @@ squashed_grid_indices AS (
         GENERATE_SERIES(1, (SELECT COUNT(1) - 1 FROM distinct_y)) AS squashed_y
     FROM squashed_xs
 ),
+horizontal_walls AS (
+    SELECT
+        squashed_x,
+        squashed_y,
+        boundary
+    FROM (
+        SELECT DISTINCT ON (squashed_x, squashed_y)
+            squashed_x,
+            squashed_y,
+            boundary
+        FROM (
+            SELECT
+                squashed_x,
+                squashed_y,
+                1 AS boundary
+            FROM horizontal_boundary_segments
+            UNION ALL
+            SELECT
+                squashed_x,
+                squashed_y,
+                0 AS boundary
+            FROM squashed_grid_indices
+        ) AS subquery2
+        ORDER BY squashed_x, squashed_y, boundary DESC
+    ) AS subquery1
+    ORDER BY squashed_x, squashed_y
+),
+vertical_walls AS (
+    SELECT
+        squashed_x,
+        squashed_y,
+        boundary
+    FROM (
+        SELECT DISTINCT ON (squashed_x, squashed_y)
+            squashed_x,
+            squashed_y,
+            boundary
+        FROM (
+            SELECT
+                squashed_x,
+                squashed_y,
+                1 AS boundary
+            FROM vertical_boundary_segments
+            UNION ALL
+            SELECT
+                squashed_x,
+                squashed_y,
+                0 AS boundary
+            FROM squashed_grid_indices
+        ) AS subquery2
+        ORDER BY squashed_x, squashed_y, boundary DESC
+    ) AS subquery1
+    ORDER BY squashed_x, squashed_y
+),
+horizontal_interior AS (
+    SELECT
+        squashed_x,
+        squashed_y,
+        SUM(boundary) OVER (PARTITION BY squashed_x ORDER BY squashed_y) % 2 = 1 AS is_interior
+    FROM horizontal_walls
+),
+vertical_interior AS (
+    SELECT
+        squashed_x,
+        squashed_y,
+        SUM(boundary) OVER (PARTITION BY squashed_y ORDER BY squashed_x) % 2 = 1 AS is_interior
+    FROM vertical_walls
+),
+squashed_grid AS (
+    SELECT
+        squashed_grid_indices.squashed_x,
+        squashed_grid_indices.squashed_y,
+        CAST(horizontal_interior.is_interior AND vertical_interior.is_interior AS INTEGER) AS is_interior
+    FROM squashed_grid_indices
+    INNER JOIN horizontal_interior
+    ON (
+        horizontal_interior.squashed_x = squashed_grid_indices.squashed_x
+        AND horizontal_interior.squashed_y = squashed_grid_indices.squashed_y
+    )
+    INNER JOIN vertical_interior
+    ON (
+        vertical_interior.squashed_x = squashed_grid_indices.squashed_x
+        AND vertical_interior.squashed_y = squashed_grid_indices.squashed_y
+    )
+)
+SELECT * FROM squashed_grid;
+
+
+
+
 squashed_grid AS (
     SELECT
         squashed_x,
@@ -379,3 +469,10 @@ interior_corner_pair_original AS (
 SELECT
     MAX(area) AS answer
 FROM interior_corner_pair_original;
+
+--    answer
+-- ------------
+--  1543501936
+-- (1 row)
+
+-- Time: 1867519.421 ms (31:07.519)
